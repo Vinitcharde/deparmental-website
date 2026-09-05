@@ -1,0 +1,6 @@
+{
+  "name": "DataDive 5.0 - The Odyssey",
+  "description": "Departmental fest of Computer Science & Engineering (Data Science) themed around The Odyssey: ancient Greek mythology meets futuristic exploration. Featuring DataVerse 5.0, VizMinds 3.0, Founders Gone Wild, Survival Showdown 2.0, and Game of Bids 2026.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

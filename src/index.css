@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --font-odyssey: 'Cinzel', serif;
+  --font-decorative: 'Cinzel Decorative', cursive, serif;
+  --font-sans: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --color-gold-300: #FDE047;
+  --color-gold-400: #FACC15;
+  --color-gold-500: #EAB308;
+  --color-gold-600: #CA8A04;
+  --color-mythic-dark: #07090E;
+  --color-mythic-card: #0F141F;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #05070B;
+    color: #F1F5F9;
+  }
+
+  h1, h2, h3, .font-odyssey {
+    font-family: var(--font-odyssey);
+    letter-spacing: 0.04em;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #070A10;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #D97706;
+}
+
+/* Greek Meander / Frieze border helper */
+.greek-border {
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(217, 119, 6, 0.4) 0px,
+    rgba(217, 119, 6, 0.4) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  height: 2px;
+}
+
+/* Glow effects */
+.glow-gold {
+  box-shadow: 0 0 35px -5px rgba(245, 158, 11, 0.25);
+}
+.glow-cyan {
+  box-shadow: 0 0 35px -5px rgba(6, 182, 212, 0.25);
+}
+.glow-crimson {
+  box-shadow: 0 0 35px -5px rgba(239, 68, 68, 0.25);
+}
+
+/* Dynamic Interactive Title Hover Animations */
+@keyframes holographicShine {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes energyRays {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.08) rotate(3deg);
+    opacity: 1;
+  }
+}
+
+.datadive-title-interactive {
+  background-size: 250% auto;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.datadive-title-interactive:hover {
+  animation: holographicShine 3s linear infinite;
+  letter-spacing: 0.08em;
+  transform: translateY(-3px) scale(1.025);
+  filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.8)) drop-shadow(0 0 40px rgba(6, 182, 212, 0.5));
+}
+
+@keyframes leadProgress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+.animate-lead-progress {
+  animation: leadProgress 7s linear forwards;
+}
+
+
