@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { EVENTS, EventItem } from '../data/eventsData';
 import { odysseyAudio } from '../utils/audioSynth';
+import { triggerRegistrationGateway } from './RegistrationGatewayModal';
 
 export const EventsSection: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<'all' | 'data' | 'gaming' | 'strategy' | 'startup'>('all');
@@ -281,15 +282,21 @@ export const EventsSection: React.FC = () => {
 
                 {/* Primary Action Buttons */}
                 <div className="flex items-center gap-3 pt-2">
-                  <a
-                    href={evt.registerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-mono font-bold bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20 flex items-center justify-center space-x-2 transition-all"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerRegistrationGateway({
+                        url: evt.registerUrl,
+                        title: evt.title,
+                        category: evt.categoryLabel || evt.category,
+                        prizePool: evt.prizePool,
+                      });
+                    }}
+                    className="flex-1 py-3 px-4 rounded-xl text-xs sm:text-sm font-mono font-bold bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/20 flex items-center justify-center space-x-2 transition-all cursor-pointer group"
                   >
                     <span>REGISTER NOW</span>
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
+                    <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </button>
 
                   <button
                     onClick={() => setSelectedEventModal(evt)}
@@ -398,15 +405,21 @@ export const EventsSection: React.FC = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href={selectedEventModal.registerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 py-3 px-6 rounded-xl font-mono text-sm font-bold bg-amber-500 hover:bg-amber-400 text-black text-center flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30"
+              <button
+                type="button"
+                onClick={() => {
+                  triggerRegistrationGateway({
+                    url: selectedEventModal.registerUrl,
+                    title: selectedEventModal.title,
+                    category: selectedEventModal.categoryLabel || selectedEventModal.category,
+                    prizePool: selectedEventModal.prizePool,
+                  });
+                }}
+                className="flex-1 py-3 px-6 rounded-xl font-mono text-sm font-bold bg-amber-500 hover:bg-amber-400 text-black text-center flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 cursor-pointer group"
               >
                 <span>OPEN OFFICIAL REGISTRATION FORM</span>
-                <ExternalLink className="w-4 h-4" />
-              </a>
+                <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              </button>
               <button
                 onClick={() => setSelectedEventModal(null)}
                 className="py-3 px-6 rounded-xl font-mono text-sm bg-slate-900 hover:bg-slate-800 text-slate-300 border border-white/10"

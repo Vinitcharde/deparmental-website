@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Copy,
   Check,
@@ -32,6 +32,7 @@ import kelvinPoster from '../assets/images/lead_kelvin_cherian.png';
 import umangPoster from '../assets/images/lead_umang_tagde.png';
 import aryanPoster from '../assets/images/lead_aryan_paul.png';
 import asawariPoster from '../assets/images/lead_asawari_fuse.png';
+import sheronPoster from '../assets/images/lead_sheron_masih.png';
 import yashPoster from '../assets/images/core_yash_gupta.png';
 import harshalPoster from '../assets/images/core_harshal_lokhande.png';
 import mrunalPoster from '../assets/images/core_mrunal_patil.png';
@@ -53,6 +54,8 @@ export const TeamSection: React.FC = () => {
   const [isAutoSwapPaused, setIsAutoSwapPaused] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [autoSwapKey, setAutoSwapKey] = useState(0);
+  const [isSectionVisible, setIsSectionVisible] = useState(false);
+  const swapperRef = useRef<HTMLDivElement | null>(null);
 
   const leadMarshals = [
     {
@@ -106,6 +109,19 @@ export const TeamSection: React.FC = () => {
       badgeBg: 'bg-rose-500/15 text-rose-300 border border-rose-500/30',
       glow: 'shadow-rose-500/10',
       btnStyle: 'bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30',
+    },
+    {
+      id: 'sheron',
+      name: 'Sheron Masih',
+      role: 'Lead Co-coordinator',
+      badge: 'LEAD CO-COORDINATOR',
+      subtitle: 'DataDive 5.0 • Department of CSE (Data Science)',
+      image: sheronPoster,
+      phone: 'Lead Council Desk',
+      color: 'border-blue-500/40 text-blue-300',
+      badgeBg: 'bg-blue-500/15 text-blue-300 border border-blue-500/30',
+      glow: 'shadow-blue-500/10',
+      btnStyle: 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30',
     },
   ];
 
@@ -192,14 +208,37 @@ export const TeamSection: React.FC = () => {
     },
   ];
 
-  // Automatic card swapping every 7 seconds (pauses on hover, pause toggle, or when lightbox is open)
+  // Observe when LEAD TEAM & COORDINATORS section is visible on screen
   useEffect(() => {
-    if (isAutoSwapPaused || isHovered || selectedPoster !== null) return;
+    const el = swapperRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setIsSectionVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsSectionVisible(entry.isIntersecting);
+      },
+      {
+        root: null,
+        rootMargin: '100px 0px 100px 0px',
+        threshold: 0.1,
+      }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Automatic card swapping every 7 seconds (only starts when LEAD TEAM & COORDINATORS is in viewport; pauses on hover, pause toggle, or when lightbox is open)
+  useEffect(() => {
+    if (!isSectionVisible || isAutoSwapPaused || isHovered || selectedPoster !== null) return;
     const interval = setInterval(() => {
       setActiveLeadIndex((prev) => (prev + 1) % leadMarshals.length);
     }, 7000);
     return () => clearInterval(interval);
-  }, [isAutoSwapPaused, isHovered, selectedPoster, leadMarshals.length, autoSwapKey]);
+  }, [isSectionVisible, isAutoSwapPaused, isHovered, selectedPoster, leadMarshals.length, autoSwapKey]);
 
   // Reset sweeping sequence to Lead Mentor Kelvin Cherian (index 0) whenever Coordinators in ribbon is clicked
   useEffect(() => {
@@ -289,8 +328,8 @@ export const TeamSection: React.FC = () => {
           </p>
         </div>
 
-        {/* ── Apex Leadership Swappable Showcase (Kelvin Cherian, Umang Tagde, Aryan Paul, Asawari Fuse) ── */}
-        <div className="mb-24">
+        {/* ── Apex Leadership Swappable Showcase (Kelvin Cherian, Umang Tagde, Aryan Paul, Asawari Fuse, Sheron Masih) ── */}
+        <div ref={swapperRef} className="mb-24">
           {/* Center Card Swapper Area (Hovering pauses auto-swap) */}
           <div
             className="relative max-w-md mx-auto px-4 sm:px-0"
@@ -300,9 +339,9 @@ export const TeamSection: React.FC = () => {
             {/* Auto-Swap Timing Progress Bar */}
             <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mb-3">
               <div
-                key={`${activeLeadIndex}-${autoSwapKey}-${isAutoSwapPaused || isHovered}`}
+                key={`${activeLeadIndex}-${autoSwapKey}-${isAutoSwapPaused || isHovered || !isSectionVisible}`}
                 className={`h-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-300 rounded-full ${
-                  !isAutoSwapPaused && !isHovered && selectedPoster === null ? 'animate-lead-progress' : 'w-full opacity-30'
+                  isSectionVisible && !isAutoSwapPaused && !isHovered && selectedPoster === null ? 'animate-lead-progress' : 'w-full opacity-30'
                 }`}
               />
             </div>

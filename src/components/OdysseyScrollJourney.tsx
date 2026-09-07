@@ -114,6 +114,28 @@ interface Countdown {
   seconds: number;
 }
 
+interface HeroCloud {
+  x: number;
+  y: number;
+  radiusX: number;
+  radiusY: number;
+  speedY: number;
+  driftX: number;
+  opacity: number;
+  hue: 'purple' | 'blue' | 'slate';
+}
+
+interface FlameSpark {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  life: number;
+  maxLife: number;
+  color: string;
+}
+
 export const OdysseyScrollJourney: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -125,9 +147,34 @@ export const OdysseyScrollJourney: React.FC = () => {
   const [countdown, setCountdown] = useState<Countdown>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   const imagesRef = useRef<HTMLImageElement[]>([]);
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
   const particlesRef = useRef<Particle[]>([]);
+  const heroCloudsRef = useRef<HeroCloud[]>([]);
+  const flameSparksRef = useRef<FlameSpark[]>([]);
   const lastScrollTime = useRef<number>(Date.now());
   const lastScrollY = useRef<number>(0);
+
+  // Initialize and autoplay hero warrior video for Frame 1
+  useEffect(() => {
+    const v = heroVideoRef.current;
+    if (!v) return;
+    v.muted = true;
+    v.loop = true;
+    v.playsInline = true;
+    v.autoplay = true;
+    const tryPlay = () => {
+      if (v.paused) v.play().catch(() => {});
+    };
+    tryPlay();
+    window.addEventListener('scroll', tryPlay, { once: true });
+    window.addEventListener('click', tryPlay, { once: true });
+    window.addEventListener('touchstart', tryPlay, { once: true });
+    return () => {
+      window.removeEventListener('scroll', tryPlay);
+      window.removeEventListener('click', tryPlay);
+      window.removeEventListener('touchstart', tryPlay);
+    };
+  }, []);
 
   // Live countdown to 10th September 2026
   useEffect(() => {
@@ -187,6 +234,22 @@ export const OdysseyScrollJourney: React.FC = () => {
       });
     }
     particlesRef.current = particles;
+
+    // Initialize 32 atmospheric clouds that fly from DOWN to UP across the sky
+    const clouds: HeroCloud[] = [];
+    for (let i = 0; i < 32; i++) {
+      clouds.push({
+        x: Math.random() * 2600 - 400,
+        y: Math.random() * 850 - 50, // distributed vertically across sky and horizon
+        radiusX: 180 + Math.random() * 240,
+        radiusY: 60 + Math.random() * 90,
+        speedY: 1.1 + Math.random() * 1.6, // Active vertical rise from down to up side
+        driftX: (Math.random() - 0.45) * 0.4,
+        opacity: 0.10 + Math.random() * 0.15, // Visible majestic presence
+        hue: Math.random() > 0.6 ? 'purple' : Math.random() > 0.3 ? 'blue' : 'slate',
+      });
+    }
+    heroCloudsRef.current = clouds;
   }, []);
 
   // Handle scroll progress
@@ -214,6 +277,15 @@ export const OdysseyScrollJourney: React.FC = () => {
 
     lastScrollTime.current = now;
     lastScrollY.current = window.scrollY;
+
+    // Pause hero video when scrolled past Frame 1 to save GPU, resume when back at Frame 1
+    if (heroVideoRef.current) {
+      if (progress > 0.12) {
+        if (!heroVideoRef.current.paused) heroVideoRef.current.pause();
+      } else {
+        if (heroVideoRef.current.paused) heroVideoRef.current.play().catch(() => {});
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -249,12 +321,24 @@ export const OdysseyScrollJourney: React.FC = () => {
       ctx.fillRect(0, 0, width, height);
 
       // Draw helper function with 'cover' aspect ratio & camera zoom
-      const drawCover = (img: HTMLImageElement, alpha: number, scaleMultiplier: number = 1) => {
+      let lastCoverRenderW = width;
+      let lastCoverRenderH = height;
+      let lastCoverOffsetX = 0;
+      let lastCoverOffsetY = 0;
+
+      const drawCover = (
+        img: HTMLImageElement | HTMLVideoElement,
+        alpha: number,
+        scaleMultiplier: number = 1
+      ) => {
         if (!img) return;
         ctx.save();
         ctx.globalAlpha = alpha;
 
-        const imgRatio = img.width / img.height;
+        const imgWidth = 'videoWidth' in img ? (img.videoWidth || 1920) : img.width;
+        const imgHeight = 'videoHeight' in img ? (img.videoHeight || 1080) : img.height;
+
+        const imgRatio = imgWidth / imgHeight;
         const screenRatio = width / height;
         let renderW: number;
         let renderH: number;
@@ -278,16 +362,315 @@ export const OdysseyScrollJourney: React.FC = () => {
         const offsetX = (width - renderW) / 2 + shakeX;
         const offsetY = (height - renderH) / 2 + shakeY;
 
+        lastCoverRenderW = renderW;
+        lastCoverRenderH = renderH;
+        lastCoverOffsetX = offsetX;
+        lastCoverOffsetY = offsetY;
+
         ctx.drawImage(img, offsetX, offsetY, renderW, renderH);
         ctx.restore();
       };
 
-      // Cinematic zoom drift
-      const zoomA = 1.0 + blend * 0.06;
+      // Check if hero warrior video is ready and playing
+      const heroVideo = heroVideoRef.current;
+      const isVideoPlaying = Boolean(
+        heroVideo && heroVideo.readyState >= 2 && !heroVideo.paused
+      );
+
+      // Hero Frame: Draw authentic video on Image 1, with imgA as seamless instant fallback
+      const zoomA = baseIdx === 0 ? 1.0 : 1.0 + blend * 0.06;
       const zoomB = 1.06 - blend * 0.06;
 
-      if (imgA) drawCover(imgA, 1 - blend, zoomA);
+      if (baseIdx === 0) {
+        if (isVideoPlaying && heroVideo) {
+          drawCover(heroVideo, 1 - blend, 1.0);
+        } else if (imgA) {
+          drawCover(imgA, 1 - blend, 1.0);
+        }
+      } else {
+        if (imgA) drawCover(imgA, 1 - blend, zoomA);
+      }
+
       if (imgB && blend > 0) drawCover(imgB, blend, zoomB);
+
+      // --- PROCEDURAL ANIMATIONS (Active only if video is NOT playing) ---
+      const animAlpha = 1 - blend;
+      if (!isVideoPlaying && baseIdx === 0 && animAlpha > 0.01) {
+        const renderW = lastCoverRenderW;
+        const renderH = lastCoverRenderH;
+        const offsetX = lastCoverOffsetX;
+        const offsetY = lastCoverOffsetY;
+
+        // 1. CLOUD FLY ANIMATION (Clouds flying from DOWN to UP side)
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        heroCloudsRef.current.forEach((c) => {
+          // Fly from down to up!
+          c.y -= c.speedY;
+          c.x += c.driftX;
+
+          // Wrap around: when exiting above the top of screen, restart below horizon
+          const skyBottom = offsetY + 0.58 * renderH;
+          if (c.y + c.radiusY < -120) {
+            c.y = skyBottom + c.radiusY + Math.random() * 60;
+            c.x = Math.random() * (width + 500) - 250;
+          }
+
+          if (c.y > -150 && c.y < height * 0.75) {
+            ctx.save();
+            ctx.translate(c.x, c.y);
+            ctx.scale(1, c.radiusY / c.radiusX);
+
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, c.radiusX);
+            const clr =
+              c.hue === 'purple'
+                ? `rgba(185, 165, 235, ${c.opacity * animAlpha})`
+                : c.hue === 'blue'
+                ? `rgba(145, 195, 245, ${c.opacity * animAlpha})`
+                : `rgba(205, 220, 235, ${c.opacity * animAlpha})`;
+            const midClr =
+              c.hue === 'purple'
+                ? `rgba(125, 105, 185, ${c.opacity * 0.55 * animAlpha})`
+                : `rgba(95, 135, 185, ${c.opacity * 0.55 * animAlpha})`;
+
+            grad.addColorStop(0, clr);
+            grad.addColorStop(0.55, midClr);
+            grad.addColorStop(1, 'rgba(5, 7, 11, 0)');
+
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, c.radiusX, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        });
+        ctx.restore();
+
+        // 2. ODYSSEY HERO WARRIOR CAPE FLY ANIMATION (Seamless 2D Cloth Mesh Physics)
+        // Cape bounds in imgA (1376x768): x: 745 to 1085, y: 345 to 635
+        const capeSrcX = 745;
+        const capeSrcY = 345;
+        const capeSrcW = 340;
+        const capeSrcH = 290;
+
+        const capeScreenX = offsetX + (capeSrcX / 1376) * renderW;
+        const capeScreenY = offsetY + (capeSrcY / 768) * renderH;
+        const capeScreenW = (capeSrcW / 1376) * renderW;
+        const capeScreenH = (capeSrcH / 768) * renderH;
+
+        const time = Date.now() * 0.007;
+
+        // 2D grid resolution for seamless cloth deformation
+        const cols = 28;
+        const rows = 18;
+        const srcCellW = capeSrcW / cols;
+        const srcCellH = capeSrcH / rows;
+        const screenCellW = capeScreenW / cols;
+        const screenCellH = capeScreenH / rows;
+
+        // Dynamic wind gust cycle matching the video's dramatic wind
+        const windGust = 1 + Math.sin(time * 2.8) * 0.35 + Math.cos(time * 5.5) * 0.15;
+
+        ctx.save();
+        ctx.globalAlpha = animAlpha;
+
+        // Draw 2D cloth grid with mathematically continuous edge pinning:
+        // Pinning factor is strictly 0 at all 4 outer boundaries (top, bottom, shield-left, smoke-right)
+        // Therefore, NO rectangular edges, seams, or cuts can EVER appear!
+        for (let r = 0; r < rows; r++) {
+          const v = (r + 0.5) / rows;
+          // Smooth vertical pin: 0 at top edge (sky), 0 at bottom edge (ground/sword), peak in middle
+          const pinY = Math.sin(v * Math.PI);
+
+          for (let c = 0; c < cols; c++) {
+            const u = (c + 0.5) / cols;
+            // Smooth horizontal pin: 0 at shield rim, builds outward, smoothly tapers to 0 at smoke boundary
+            const pinX = Math.sin(u * Math.PI * 0.5) * (u < 0.82 ? 1.0 : Math.max(0, 1.0 - (u - 0.82) / 0.18));
+
+            const edgePin = Math.max(0, pinX * pinY);
+
+            // Multi-frequency wind flutter wave matching the video
+            const waveY =
+              (Math.sin(time * 6.5 - u * 5.2 + v * 1.5) * 15 +
+               Math.sin(time * 12.5 - u * 9.0) * 6.5 +
+               Math.sin(time * 18 - u * 13.0) * 2.5) *
+              edgePin *
+              windGust;
+
+            const waveX =
+              (Math.cos(time * 5.2 - u * 4.5) * 7.0 +
+               Math.sin(time * 10.5 - u * 7.5) * 3.5) *
+              edgePin *
+              windGust;
+
+            const srcX = capeSrcX + c * srcCellW;
+            const srcY = capeSrcY + r * srcCellH;
+            const dx = capeScreenX + c * screenCellW + waveX;
+            const dy = capeScreenY + r * screenCellH + waveY;
+            const dw = screenCellW + 0.8;
+            const dh = screenCellH + 0.8;
+
+            if (imgA) {
+              ctx.drawImage(
+                imgA,
+                srcX,
+                srcY,
+                srcCellW,
+                srcCellH,
+                dx,
+                dy,
+                dw,
+                dh
+              );
+            }
+          }
+        }
+
+        // Draw pristine static shield rim right over the junction so shield stays 100% rigid & motionless
+        const shieldRimSrcX = 720;
+        const shieldRimSrcW = 55;
+        const shieldRimScreenX = offsetX + (shieldRimSrcX / 1376) * renderW;
+        const shieldRimScreenW = (shieldRimSrcW / 1376) * renderW;
+        if (imgA) {
+          ctx.drawImage(
+            imgA,
+            shieldRimSrcX,
+            capeSrcY,
+            shieldRimSrcW,
+            capeSrcH,
+            shieldRimScreenX,
+            capeScreenY,
+            shieldRimScreenW + 0.5,
+            capeScreenH
+          );
+        }
+        ctx.restore();
+
+        // 3. FLAME ANIMATION (Spear tip blazing fire + battlefield bonfires)
+        // Ground war bonfires (Left: u=0.145, v=0.74, Right: u=0.835, v=0.77)
+        const g1X = offsetX + 0.145 * renderW;
+        const g1Y = offsetY + 0.74 * renderH;
+        const g2X = offsetX + 0.835 * renderW;
+        const g2Y = offsetY + 0.77 * renderH;
+
+        [
+          { x: g1X, y: g1Y, r: 42 },
+          { x: g2X, y: g2Y, r: 36 },
+        ].forEach((fire) => {
+          const fPulse = 1 + Math.sin(time * 5 + fire.x) * 0.2 + Math.cos(time * 11) * 0.1;
+          const fGrad = ctx.createRadialGradient(fire.x, fire.y, 0, fire.x, fire.y, fire.r * fPulse);
+          fGrad.addColorStop(0, `rgba(255, 175, 45, ${0.48 * animAlpha})`);
+          fGrad.addColorStop(0.5, `rgba(255, 75, 5, ${0.22 * animAlpha})`);
+          fGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.fillStyle = fGrad;
+          ctx.beginPath();
+          ctx.arc(fire.x, fire.y, fire.r * fPulse, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // Spearhead coordinates (spear blade: u=0.373, v=0.735, tip: u=0.354, v=0.768)
+        const spearX = offsetX + 0.373 * renderW;
+        const spearY = offsetY + 0.735 * renderH;
+        const tipX = offsetX + 0.354 * renderW;
+        const tipY = offsetY + 0.768 * renderH;
+
+        // Radiant golden/amber spearhead glow aura
+        const flarePulse = 1 + Math.sin(time * 7) * 0.16 + Math.cos(time * 13) * 0.08;
+        const flareRadius = 48 * flarePulse;
+        const flareGrad = ctx.createRadialGradient(spearX, spearY, 2, spearX, spearY, flareRadius);
+        flareGrad.addColorStop(0, `rgba(255, 255, 220, ${0.95 * animAlpha})`);
+        flareGrad.addColorStop(0.25, `rgba(255, 185, 35, ${0.75 * animAlpha})`);
+        flareGrad.addColorStop(0.6, `rgba(255, 85, 10, ${0.35 * animAlpha})`);
+        flareGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.fillStyle = flareGrad;
+        ctx.beginPath();
+        ctx.arc(spearX, spearY, flareRadius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Multi-tongue licking fire flames rising from the spearhead
+        const flameTongues = [
+          { offsetX: -3, offsetY: -5, height: 42, width: 15, speed: 8, sway: 5, clr: 'rgba(255, 90, 10,' },
+          { offsetX: 4, offsetY: -3, height: 36, width: 12, speed: 10, sway: -4, clr: 'rgba(255, 140, 20,' },
+          { offsetX: 0, offsetY: -8, height: 48, width: 14, speed: 7, sway: 6, clr: 'rgba(255, 210, 50,' },
+          { offsetX: 1, offsetY: -4, height: 28, width: 9, speed: 12, sway: 3, clr: 'rgba(255, 255, 210,' },
+        ];
+
+        flameTongues.forEach((t) => {
+          const sway = Math.sin(time * t.speed + t.offsetX) * t.sway;
+          const curH = t.height * (1 + Math.sin(time * (t.speed + 3)) * 0.18);
+          const topX = spearX + t.offsetX + sway;
+          const topY = spearY + t.offsetY - curH;
+
+          const tongueGrad = ctx.createLinearGradient(spearX, spearY, topX, topY);
+          tongueGrad.addColorStop(0, `${t.clr} ${0.95 * animAlpha})`);
+          tongueGrad.addColorStop(0.6, `${t.clr} ${0.65 * animAlpha})`);
+          tongueGrad.addColorStop(1, 'rgba(255, 50, 0, 0)');
+
+          ctx.fillStyle = tongueGrad;
+          ctx.beginPath();
+          ctx.moveTo(spearX + t.offsetX - t.width / 2, spearY + t.offsetY);
+          ctx.quadraticCurveTo(spearX + t.offsetX - t.width / 4, spearY - curH * 0.5, topX, topY);
+          ctx.quadraticCurveTo(spearX + t.offsetX + t.width / 4, spearY - curH * 0.5, spearX + t.offsetX + t.width / 2, spearY + t.offsetY);
+          ctx.closePath();
+          ctx.fill();
+        });
+        ctx.restore();
+
+        // Spawn 2 new sparks/embers per frame along the spear blade
+        if (flameSparksRef.current.length < 45) {
+          for (let i = 0; i < 2; i++) {
+            const lerp = Math.random();
+            const spawnX = spearX * (1 - lerp) + tipX * lerp + (Math.random() - 0.5) * 6;
+            const spawnY = spearY * (1 - lerp) + tipY * lerp + (Math.random() - 0.5) * 6;
+            flameSparksRef.current.push({
+              x: spawnX,
+              y: spawnY,
+              vx: (Math.random() - 0.45) * 1.8,
+              vy: -Math.random() * 2.8 - 1.2,
+              size: Math.random() * 3.2 + 1.2,
+              life: 0,
+              maxLife: 25 + Math.random() * 30,
+              color: Math.random() > 0.6 ? '#FEF08A' : Math.random() > 0.3 ? '#F59E0B' : '#EF4444',
+            });
+          }
+        }
+
+        // Update and draw rising sparks/embers
+        for (let i = flameSparksRef.current.length - 1; i >= 0; i--) {
+          const spark = flameSparksRef.current[i];
+          spark.x += spark.vx + (Math.random() - 0.5) * 0.6;
+          spark.y += spark.vy;
+          spark.life++;
+
+          if (spark.life >= spark.maxLife) {
+            flameSparksRef.current.splice(i, 1);
+            continue;
+          }
+
+          const progress = spark.life / spark.maxLife;
+          const currentAlpha = (1 - progress) * animAlpha;
+          const curSize = spark.size * (1 - progress * 0.6);
+
+          ctx.save();
+          ctx.globalAlpha = currentAlpha;
+          ctx.fillStyle = spark.color;
+          ctx.shadowColor = spark.color;
+          ctx.shadowBlur = 6;
+          ctx.beginPath();
+          ctx.arc(spark.x, spark.y, curSize, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.restore();
+      }
 
       // Atmospheric vignette
       const radialGrad = ctx.createRadialGradient(
@@ -418,20 +801,41 @@ export const OdysseyScrollJourney: React.FC = () => {
           className="absolute inset-0 w-full h-full object-cover pointer-events-none"
         />
 
+        {/* Authentic Hero Warrior Video for Image 1 Frame */}
+        <video
+          ref={heroVideoRef}
+          src="/odyssey_hero_warrior.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="pointer-events-none"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '1px',
+            height: '1px',
+            opacity: 0,
+            zIndex: -100,
+          }}
+        />
+
         {/* TOP LAYER: HERO SECTION (Visible at the very beginning from scroll 0.0 to 0.14) */}
         {heroOpacity > 0.01 && (
           <div
             id="hero-header-overlay"
-            className="absolute inset-0 z-20 flex flex-col justify-between pt-24 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full transition-opacity duration-150"
+            className="absolute inset-0 z-20 flex flex-col justify-between pt-16 sm:pt-20 pb-6 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full transition-opacity duration-150"
             style={{
               opacity: heroOpacity,
               transform: `translateY(${heroTranslateY}px)`,
               pointerEvents: heroOpacity > 0.4 ? 'auto' : 'none',
             }}
           >
-            <div className="flex flex-col items-center text-center mt-6 sm:mt-10">
+            {/* Top Title Group: Shifted up to sit gracefully in the celestial sky */}
+            <div className="flex flex-col items-center text-center mt-1 sm:mt-2">
               {/* Interactive Main Headline with Dynamic Cosmic Hover Aura, Laser Beam, & Sparkles */}
-              <div className="relative group inline-block cursor-pointer select-none mb-2 px-4 py-2">
+              <div className="relative group inline-block cursor-pointer select-none mb-2 px-4 py-1 sm:py-2">
                 {/* Radial Golden & Cosmic Cyan Aura that blooms on hover */}
                 <div className="absolute -inset-4 sm:-inset-8 bg-gradient-to-r from-amber-500/0 via-amber-400/25 via-cyan-400/20 to-amber-500/0 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
@@ -453,20 +857,19 @@ export const OdysseyScrollJourney: React.FC = () => {
               </div>
 
               {/* Theme Subtitle */}
-              <div className="flex items-center justify-center space-x-3 mb-4">
+              <div className="flex items-center justify-center space-x-3">
                 <div className="h-px w-10 sm:w-20 bg-gradient-to-r from-transparent to-amber-500" />
                 <span className="text-xs sm:text-base md:text-lg font-mono tracking-[0.25em] text-cyan-400 uppercase font-bold">
                   THE ODYSSEY
                 </span>
                 <div className="h-px w-10 sm:w-20 bg-gradient-to-l from-transparent to-amber-500" />
               </div>
+            </div>
 
-              <p className="max-w-2xl text-xs sm:text-base text-slate-300 font-light leading-relaxed mb-6 drop-shadow">
-                Ancient Greek Mythology fused with Futuristic Space Exploration. 5 Flagship Arenas, live workshops, high-stakes bidding, and a ₹15,000+ prize pool on 10th September 2026.
-              </p>
-
+            {/* Bottom Group: Countdown Clock & Arenas Button moved down directly above the Scroll Indicator */}
+            <div className="flex flex-col items-center text-center mt-auto pb-2">
               {/* Countdown Clock */}
-              <div className="grid grid-cols-4 gap-2 sm:gap-4 max-w-md w-full mb-6">
+              <div className="grid grid-cols-4 gap-2 sm:gap-3.5 max-w-md w-full mb-3.5 sm:mb-4">
                 {[
                   { label: 'DAYS', val: countdown.days },
                   { label: 'HOURS', val: countdown.hours },
@@ -475,7 +878,7 @@ export const OdysseyScrollJourney: React.FC = () => {
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-xl bg-slate-900/80 border border-amber-500/30 backdrop-blur-md shadow-lg"
+                    className="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-900/85 border border-amber-500/30 backdrop-blur-md shadow-lg"
                   >
                     <span className="text-xl sm:text-3xl font-black font-mono text-amber-400">
                       {String(item.val).padStart(2, '0')}
@@ -488,25 +891,25 @@ export const OdysseyScrollJourney: React.FC = () => {
               </div>
 
               {/* Action Button: Arenas */}
-              <div className="flex items-center justify-center">
+              <div className="flex items-center justify-center mb-4 sm:mb-5">
                 <a
                   id="hero-jump-arenas-btn"
                   href="#schedule"
-                  className="inline-flex items-center space-x-2 px-8 py-3.5 rounded-full font-mono text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:brightness-110 transition-all shadow-xl shadow-amber-500/30 active:scale-95 cursor-pointer"
+                  className="inline-flex items-center space-x-2 px-8 py-3 rounded-full font-mono text-xs sm:text-sm font-bold bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 hover:brightness-110 transition-all shadow-xl shadow-amber-500/30 active:scale-95 cursor-pointer"
                 >
                   <span>5 FLAGSHIP ARENAS</span>
                   <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
-            </div>
 
-            {/* Scroll Indicator Prompt */}
-            <div className="flex flex-col items-center justify-center pb-2 text-center">
-              <span className="text-[11px] sm:text-xs font-mono tracking-[0.2em] text-amber-300/80 uppercase mb-1.5 animate-pulse">
-                SCROLL TO EXPERIENCE THE 40-FRAME ODYSSEY
-              </span>
-              <div className="w-6 h-10 rounded-full border-2 border-amber-500/40 flex items-start justify-center p-1.5 backdrop-blur-sm bg-black/40">
-                <div className="w-1.5 h-2.5 bg-amber-400 rounded-full animate-bounce" />
+              {/* Scroll Indicator Prompt */}
+              <div className="flex flex-col items-center justify-center text-center">
+                <span className="text-[11px] sm:text-xs font-mono tracking-[0.2em] text-amber-300/80 uppercase mb-1.5 animate-pulse">
+                  SCROLL TO EXPERIENCE THE 40-FRAME ODYSSEY
+                </span>
+                <div className="w-6 h-10 rounded-full border-2 border-amber-500/40 flex items-start justify-center p-1.5 backdrop-blur-sm bg-black/40">
+                  <div className="w-1.5 h-2.5 bg-amber-400 rounded-full animate-bounce" />
+                </div>
               </div>
             </div>
           </div>

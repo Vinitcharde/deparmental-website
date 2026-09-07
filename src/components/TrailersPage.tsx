@@ -29,6 +29,7 @@ import survivalLogo from '../assets/images/logo_survival_showdown_1788549451061.
 import gameOfBidsLogo from '../assets/images/logo_game_of_bids_1788549469054.jpg';
 import foundersWildLogo from '../assets/images/logo_founders_wild_1788597820429.jpg';
 import { odysseyAudio } from '../utils/audioSynth';
+import { triggerRegistrationGateway } from './RegistrationGatewayModal';
 
 export interface TrailerItem {
   id: string;
@@ -677,15 +678,22 @@ export const TrailersPage: React.FC<{
               </div>
 
               {/* Primary Register CTA */}
-              <a
-                href={activeTrailer.registerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`w-full py-3.5 px-4 rounded-xl font-mono text-xs font-bold text-center flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/20 active:scale-95 transition-all ${activeTrailer.themeColor.button}`}
+              <button
+                type="button"
+                onClick={() => {
+                  triggerRegistrationGateway({
+                    url: activeTrailer.registerUrl,
+                    title: activeTrailer.title,
+                    category: activeTrailer.category,
+                    prizePool: activeTrailer.prizePool,
+                    venue: activeTrailer.venue,
+                  });
+                }}
+                className={`w-full py-3.5 px-4 rounded-xl font-mono text-xs font-bold text-center flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/20 active:scale-95 transition-all cursor-pointer ${activeTrailer.themeColor.button}`}
               >
                 <span>REGISTER FOR {activeTrailer.title}</span>
                 <ChevronRight className="w-4 h-4" />
-              </a>
+              </button>
 
               {/* Quick Share This Arena Button */}
               <button

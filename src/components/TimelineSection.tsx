@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { EVENTS, EventItem } from '../data/eventsData';
 import { odysseyAudio } from '../utils/audioSynth';
+import { triggerRegistrationGateway } from './RegistrationGatewayModal';
 
 // Map event IDs to their schedule slots
 const EVENT_SCHEDULE: Record<string, { time: string; location: string; act: string; category: string }> = {
@@ -296,15 +297,22 @@ const EventDetailModal: React.FC<{
 
           {/* ── Action Buttons ── */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <a
-              href={event.registerUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 py-3.5 px-6 rounded-xl font-mono text-sm font-bold bg-amber-500 hover:bg-amber-400 text-black text-center flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 transition-all"
+            <button
+              type="button"
+              onClick={() => {
+                triggerRegistrationGateway({
+                  url: event.registerUrl,
+                  title: event.title,
+                  category: event.categoryLabel || event.category,
+                  prizePool: event.prizePool,
+                  venue: event.venue,
+                });
+              }}
+              className="flex-1 py-3.5 px-6 rounded-xl font-mono text-sm font-bold bg-amber-500 hover:bg-amber-400 text-black text-center flex items-center justify-center space-x-2 shadow-xl shadow-amber-500/30 transition-all cursor-pointer group"
             >
               <span>Open Official Registration Form</span>
-              <ExternalLink className="w-4 h-4" />
-            </a>
+              <ExternalLink className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </button>
             <button
               onClick={onClose}
               className="py-3.5 px-6 rounded-xl font-mono text-sm bg-slate-900 hover:bg-slate-800 text-slate-300 border border-white/10 hover:border-white/20 transition-all"

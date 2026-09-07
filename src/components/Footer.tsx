@@ -2,6 +2,7 @@ import React from 'react';
 import { FEST_DATA, EVENTS } from '../data/eventsData';
 import mainEmblem from '../assets/images/datadive_official_logo_1788591290989.jpg';
 import { Sparkles, ArrowUpRight, Shield, Heart } from 'lucide-react';
+import { triggerRegistrationGateway } from './RegistrationGatewayModal';
 
 export const Footer: React.FC = () => {
   return (
@@ -50,15 +51,21 @@ export const Footer: React.FC = () => {
             <ul className="space-y-2.5 text-xs font-mono">
               {EVENTS.map((evt) => (
                 <li key={evt.id}>
-                  <a
-                    href={evt.registerUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover:text-amber-400 flex items-center space-x-1.5 transition-colors group"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerRegistrationGateway({
+                        url: evt.registerUrl,
+                        title: evt.title,
+                        category: evt.categoryLabel || evt.category,
+                        prizePool: evt.prizePool,
+                      });
+                    }}
+                    className="hover:text-amber-400 flex items-center space-x-1.5 transition-colors group text-left cursor-pointer"
                   >
                     <span>{evt.title}</span>
                     <ArrowUpRight className="w-3 h-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-                  </a>
+                  </button>
                 </li>
               ))}
             </ul>

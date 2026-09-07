@@ -116,4 +116,34 @@
   animation: leadProgress 7s linear forwards;
 }
 
+/* ── 360° Odyssey Spartan Helm Hologram Animation ── */
+@keyframes helm3DSpin {
+  0% {
+    transform: perspective(700px) rotateY(0deg);
+  }
+  100% {
+    transform: perspective(700px) rotateY(360deg);
+  }
+}
+
+@keyframes helmGlowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.5)) drop-shadow(0 0 25px rgba(6, 182, 212, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 24px rgba(245, 158, 11, 0.85)) drop-shadow(0 0 40px rgba(6, 182, 212, 0.7));
+  }
+}
+
+.animate-helm-3d-spin {
+  animation: helm3DSpin 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.animate-helm-pulse {
+  animation: helmGlowPulse 2s ease-in-out infinite;
+}
+
+
 
